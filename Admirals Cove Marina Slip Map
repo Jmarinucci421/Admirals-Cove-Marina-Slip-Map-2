@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admirals Cove Marina — Slip Map (Plan View)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #020617;
+      --water: #021525;
+      --dock: #111827;
+      --dock-line: #e5e7eb;
+      --slip-bg: #020617;
+      --slip-border: #94a3b8;
+      --slip-text: #e5e7eb;
+      --accent: #38bdf8;
+      --muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #020617 0, #000 70%);
+      color: #f9fafb;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1500px;
+      padding: 14px 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.2rem, 2vw, 1.6rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(22, 163, 74, 0.9);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    /* Marina canvas (plan view) */
+    .marina-frame {
+      background: radial-gradient(circle at center, #082f49 0, var(--water) 40%, #020617 100%);
+      border-radius: 18px;
+      padding: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .marina-label {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(191, 219, 254, 0.7);
+      pointer-events: none;
+    }
+
+    .marina-canvas {
+      position: relative;
+      width: 100%;
+      padding-top: 60%; /* aspect ratio */
+      border-radius: 14px;
+      background: radial-gradient(circle at center, #0b1120 0, #020617 55%, #020617 100%);
+      overflow: hidden;
+    }
+
+    .dock {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.96);
+      border: 2px solid rgba(226, 232, 240, 0.8);
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.9),
+        0 8px 16px rgba(15, 23, 42, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+
+    .dock-label {
+      position: absolute;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(209, 213, 219, 0.9);
+      pointer-events: none;
+    }
+
+    /* Dock A: long face dock at top */
+    .dock-a {
+      left: 6%;
+      right: 6%;
+      top: 18%;
+      height: 6%;
+      flex-direction: row;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .dock-a .dock-label {
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* B, C, D as piers down from A */
+    .dock-b,
+    .dock-c,
+    .dock-d {
+      width: 10%;
+      height: 40%;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 2px;
+    }
+
+    .dock-b {
+      left: 17%;
+      top: 26%;
+    }
+
+    .dock-c {
+      left: 44%;
+      top: 26%;
+    }
+
+    .dock-d {
+      left: 71%;
+      top: 26%;
+    }
+
+    .dock-b .dock-label,
+    .dock-c .dock-label,
+    .dock-d .dock-label {
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* Fuel dock on side */
+    .dock-fuel {
+      width: 14%;
+      height: 16%;
+      right: 6%;
+      top: 40%;
+      border-color: #fbbf24;
+    }
+
+    .dock-fuel .dock-label {
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fed7aa;
+    }
+
+    .dock-fuel-inner-text {
+      font-size: 0.7rem;
+      text-align: center;
+      color: #fee2b3;
+      padding: 2px 4px;
+    }
+
+    /* Slip containers along docks */
+    .slip-strip-horizontal {
+      display: flex;
+      flex-direction: row;
+      width: 96%;
+      height: 80%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2px;
+    }
+
+    .slip-strip-vertical {
+      display: flex;
+      flex-direction: column;
+      width: 85%;
+      height: 94%;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 2px;
+    }
+
+    .slip-row {
+      display: flex;
+      gap: 2px;
+      width: 100%;
+    }
+
+    .slip {
+      position: relative;
+      flex: 1;
+      min-height: 16px;
+      border-radius: 6px;
+      background: radial-gradient(circle at top, #020617 0, #020617 45%, #020617 100%);
+      border: 1px solid var(--slip-border);
+      font-size: 0.6rem;
+      color: var(--slip-text);
+      padding: 9px 6px 4px;
+      cursor: text;
+      outline: none;
+      overflow: hidden;
+    }
+
+    .slip::before {
+      content: attr(data-slip-id);
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(148, 163, 184, 0.95);
+    }
+
+    .slip[data-empty="true"] {
+      color: rgba(148, 163, 184, 0.8);
+    }
+
+    .slip:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.55),
+        0 0 16px rgba(56, 189, 248, 0.3);
+    }
+
+    .slip:focus-visible {
+      border-color: #a5b4fc;
+      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.85),
+        0 0 20px rgba(129, 140, 248, 0.45);
+    }
+
+    /* Side panel / legend */
+    .side-panel {
+      background: radial-gradient(circle at top left, #020617 0, #020617 30%, #000 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      padding: 10px 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.95);
+      max-height: 560px;
+    }
+
+    .panel-section {
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      padding: 8px 9px 9px;
+      font-size: 0.75rem;
+      color: #e5e7eb;
+    }
+
+    .panel-title {
+      font-size: 0.74rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .legend-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+    }
+
+    .legend-swatch {
+      width: 13px;
+      height: 13px;
+      border-radius: 5px;
+      border: 1px solid rgba(148, 163, 184, 0.9);
+    }
+
+    .legend-swatch.occ {
+      background: radial-gradient(circle at top, rgba(34, 197, 94, 0.2), #064e3b);
+      border-color: rgba(34, 197, 94, 0.9);
+    }
+
+    .legend-swatch.avail {
+      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.22), #0f172a);
+      border-color: rgba(56, 189, 248, 0.9);
+    }
+
+    .legend-swatch.annual {
+      background: radial-gradient(circle at top, rgba(129, 140, 248, 0.28), #1e3a8a);
+      border-color: rgba(129, 140, 248, 1);
+    }
+
+    .legend-swatch.hold {
+      background: radial-gradient(circle at top, rgba(245, 158, 11, 0.24), #78350f);
+      border-color: rgba(245, 158, 11, 0.9);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+
+    button {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      padding: 4px 9px;
+      font-size: 0.7rem;
+      background: rgba(15, 23, 42, 0.96);
+      color: #e5e7eb;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.12s ease-out, border-color 0.12s ease-out,
+        transform 0.06s ease-out;
+    }
+
+    button span.icon {
+      font-size: 0.9em;
+    }
+
+    button:hover {
+      background: rgba(15, 23, 42, 1);
+      border-color: rgba(248, 250, 252, 0.8);
+      transform: translateY(-0.5px);
+    }
+
+    button:active {
+      transform: translateY(0.5px) scale(0.99);
+    }
+
+    button.danger {
+      border-color: rgba(248, 113, 113, 0.9);
+      color: #fecaca;
+    }
+
+    .hint {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .footer-note {
+      margin-top: auto;
+      font-size: 0.68rem;
+      color: #4b5563;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Admirals Cove Marina — Slip Map</h1>
+        <div class="subtitle">
+          Plan-view layout with editable slip labels for TV / control room display.
+        </div>
+      </div>
+      <div class="pill">
+        <span class="dot"></span>
+        Live Layout • Local Browser Save
+      </div>
+    </header>
+
+    <main>
+      <!-- PLAN VIEW MARINA -->
+      <section class="marina-frame">
+        <div class="marina-label">INTRACOASTAL WATERWAY / BASIN</div>
+        <div class="marina-canvas">
+          <!-- Dock A (face dock across top) -->
+          <div class="dock dock-a">
+            <div class="dock-label">DOCK A</div>
+            <div class="slip-strip-horizontal">
+              <!-- approximate order along seawall -->
+              <div class="slip" data-slip-id="A101" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A102" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A103" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A104" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A105" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A106" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A107" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A200" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A201" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A202" contenteditable="true"></div>
+              <div class="slip" data-slip-id="A300" contenteditable="true"></div>
+            </div>
+          </div>
+
+          <!-- Dock B pier -->
+          <div class="dock dock-b">
+            <div class="dock-label">DOCK B</div>
+            <div class="slip-strip-vertical">
+              <!-- Top (shore end) small slips and utility -->
+              <div class="slip-row">
+                <div class="slip" data-slip-id="B101" contenteditable="true"></div>
+                <div class="slip" data-slip-id="B102" contenteditable="true"></div>
+                <div class="slip" data-slip-id="B103" contenteditable="true"></div>
+              </div>
+
+              <!-- Mid-run inside/outside pairs -->
+              <div class="slip-row">
+                <div class="slip" data-slip-id="B201" contenteditable="true"></div>
+                <div class="slip" data-slip-id="B202" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="B203" contenteditable="true"></div>
+                <div class="slip" data-slip-id="B204" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="B205" contenteditable="true"></div>
+                <div class="slip" data-slip-id="B206" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="B207" contenteditable="true"></div>
+                <div class="slip" data-slip-id="B208" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="B209" contenteditable="true"></div>
+                <div class="slip" data-slip-id="B210" contenteditable="true"></div>
+              </div>
+
+              <!-- End tee / special slips -->
+              <div class="slip-row">
+                <div class="slip" data-slip-id="B211" contenteditable="true"></div>
+                <div class="slip" data-slip-id="B211A" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="B300" contenteditable="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dock C pier -->
+          <div class="dock dock-c">
+            <div class="dock-label">DOCK C</div>
+            <div class="slip-strip-vertical">
+              <!-- Near A (shore end) -->
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C101" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C102" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C103" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C104" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C105" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C106" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C107" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C108" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C109" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C110" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C111" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C200" contenteditable="true"></div>
+              </div>
+
+              <!-- Mid / outer -->
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C201" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C202" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C203" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C204" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C205" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C206" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C207" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C208" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C209" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C210" contenteditable="true"></div>
+              </div>
+
+              <!-- Tee / head of pier -->
+              <div class="slip-row">
+                <div class="slip" data-slip-id="C300" contenteditable="true"></div>
+                <div class="slip" data-slip-id="C301" contenteditable="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dock D pier -->
+          <div class="dock dock-d">
+            <div class="dock-label">DOCK D</div>
+            <div class="slip-strip-vertical">
+              <!-- inner run -->
+              <div class="slip-row">
+                <div class="slip" data-slip-id="D101" contenteditable="true"></div>
+                <div class="slip" data-slip-id="D102" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="D103" contenteditable="true"></div>
+                <div class="slip" data-slip-id="D104" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="D105" contenteditable="true"></div>
+                <div class="slip" data-slip-id="D106" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="D107" contenteditable="true"></div>
+                <div class="slip" data-slip-id="D108" contenteditable="true"></div>
+              </div>
+
+              <!-- outer / canal side -->
+              <div class="slip-row">
+                <div class="slip" data-slip-id="D200" contenteditable="true"></div>
+                <div class="slip" data-slip-id="D201" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="D202" contenteditable="true"></div>
+                <div class="slip" data-slip-id="D203" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="D204" contenteditable="true"></div>
+                <div class="slip" data-slip-id="D205" contenteditable="true"></div>
+              </div>
+              <div class="slip-row">
+                <div class="slip" data-slip-id="D206" contenteditable="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fuel dock -->
+          <div class="dock dock-fuel">
+            <div class="dock-label">FUEL DOCK</div>
+            <div class="dock-fuel-inner-text">
+              High-flow diesel & gas<br />
+              Staging / pump-out area
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SIDE PANEL -->
+      <aside class="side-panel">
+        <div class="panel-section">
+          <div class="panel-title">Legend & Suggested Use</div>
+          <ul class="legend-list">
+            <li class="legend-item">
+              <span class="legend-swatch occ"></span> Occupied
+            </li>
+            <li class="legend-item">
+              <span class="legend-swatch avail"></span> Available
+            </li>
+            <li class="legend-item">
+              <span class="legend-swatch annual"></span> Annual
+            </li>
+            <li class="legend-item">
+              <span class="legend-swatch hold"></span> On Hold / Guest
+            </li>
+          </ul>
+          <div class="hint">
+            In each slip box, use:
+            <br />
+            <strong>Vessel Name</strong> • Member / Status
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-title">Display & Controls</div>
+          <div>
+            Click any slip to type or edit details. Text is saved
+            <strong>in this browser only</strong> using local storage.
+            <div class="controls">
+              <button type="button" id="btn-fullscreen">
+                <span class="icon">⛶</span> Full Screen
+              </button>
+              <button type="button" id="btn-clear" class="danger">
+                <span class="icon">🧹</span> Clear All Slip Text
+              </button>
+            </div>
+            <div class="hint">
+              On a PC connected to a TV, press <strong>F11</strong> to hide browser
+              chrome.
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-title">Notes</div>
+          <div>
+            Slip IDs are fixed labels in each box; only the body text is editable.
+            This is a schematic plan view intended for operational display, not a
+            scaled engineering drawing.
+          </div>
+        </div>
+
+        <div class="footer-note">
+          Admirals Cove Marina • Internal Use Only
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const STORAGE_PREFIX = "ac_slip_label_";
+
+      function loadSlipText(el) {
+        const id = el.dataset.slipId;
+        if (!id) return;
+        const stored = window.localStorage.getItem(STORAGE_PREFIX + id);
+        if (stored && stored.trim() !== "") {
+          el.textContent = stored;
+          el.dataset.empty = "false";
+        } else {
+          el.dataset.empty = "true";
+        }
+      }
+
+      function saveSlipText(el) {
+        const id = el.dataset.slipId;
+        if (!id) return;
+        const value = (el.textContent || "").trim();
+        if (value === "") {
+          window.localStorage.removeItem(STORAGE_PREFIX + id);
+          el.dataset.empty = "true";
+        } else {
+          window.localStorage.setItem(STORAGE_PREFIX + id, value);
+          el.dataset.empty = "false";
+        }
+      }
+
+      const slips = document.querySelectorAll(".slip[contenteditable='true']");
+      slips.forEach((el) => {
+        loadSlipText(el);
+        el.addEventListener("input", () => saveSlipText(el));
+        el.addEventListener("blur", () => saveSlipText(el));
+      });
+
+      // Clear all slip text
+      const clearBtn = document.getElementById("btn-clear");
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          const confirmed = window.confirm(
+            "Clear all slip text for this browser? This cannot be undone."
+          );
+          if (!confirmed) return;
+          slips.forEach((el) => {
+            const id = el.dataset.slipId;
+            if (!id) return;
+            window.localStorage.removeItem(STORAGE_PREFIX + id);
+            el.textContent = "";
+            el.dataset.empty = "true";
+          });
+        });
+      }
+
+      // Full-screen toggle
+      const fsBtn = document.getElementById("btn-fullscreen");
+      if (fsBtn) {
+        fsBtn.addEventListener("click", () => {
+          const elem = document.documentElement;
+          if (
+            !document.fullscreenElement &&
+            !document.webkitFullscreenElement &&
+            !document.mozFullScreenElement &&
+            !document.msFullscreenElement
+          ) {
+            if (elem.requestFullscreen) elem.requestFullscreen();
+            else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+            else if (elem.mozRequestFullScreen) elem.mozRequestFullScreen();
+            else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+          } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen)
+              document.webkitExitFullscreen();
+            else if (document.mozCancelFullScreen)
+              document.mozCancelFullScreen();
+            else if (document.msExitFullscreen) document.msExitFullscreen();
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
